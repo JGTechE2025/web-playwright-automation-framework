@@ -222,16 +222,6 @@ pytest --slow
 
 ---
 
-## 👨‍💻 適用職位
-
-此專案適合作為以下職位的面試展示作品：
-
-- QA Engineer
-- Automation QA
-- SDET（初階）
-
----
-
 ## 📣 專案說明
 
 本專案為**學習與面試展示用途**，以 [Sauce Demo](https://www.saucedemo.com/) 為測試目標，模擬實務 QA 自動化測試的完整流程與架構設計。
