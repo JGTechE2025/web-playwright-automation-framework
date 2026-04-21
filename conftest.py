@@ -3,7 +3,7 @@ from playwright.sync_api import sync_playwright
 
 
 # =========================
-# CLI options（一定放最上層）
+# CLI options（pytest 指令參數）
 # =========================
 def pytest_addoption(parser):
     parser.addoption(
@@ -15,7 +15,7 @@ def pytest_addoption(parser):
 
 
 # =========================
-# Browser fixture
+# Browser fixture（核心）
 # =========================
 @pytest.fixture
 def page(request):
@@ -24,10 +24,14 @@ def page(request):
     with sync_playwright() as p:
         browser = p.chromium.launch(
             headless=False,
-            slow_mo=1000 if slow else 0
+            slow_mo=2000 if slow else 0
         )
 
-        context = browser.new_context()
+        # 👉 設定畫面大小
+        context = browser.new_context(
+            viewport={"width": 1920, "height": 1080}
+        )
+
         page = context.new_page()
 
         yield page
