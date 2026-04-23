@@ -44,9 +44,11 @@ jobs:
       - name: Run Tests
         run: |
           echo "🚀 CI 環境就緒，準備執行測試..."
-          # 目前先執行 echo 驗證流程，未來真正要跑測試時改為執行: pytest
-          echo "Hello Joe! Your Playwright CI is running successfully."
-          # pytest --junitxml=report.xml # 範例：執行測試並產生報告檔
+#          目前先執行 echo 驗證流程，未來真正要跑測試時改為執行: pytest
+#          echo "Hello Joe! Your Playwright CI is running successfully."
+           # 範例：執行測試並產生 XML 報告
+#          pytest test_checkout.py
+          pytest --junitxml=report.xml
 
       # 6. 【CD 基礎】上傳測試結果 (Artifacts)
       # 即使測試失敗 (Failure) 也會執行，這能讓你下載 Log 或截圖來 Debug
