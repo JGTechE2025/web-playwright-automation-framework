@@ -33,14 +33,15 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # 優先安裝 requirements.txt 中的版本
+          # 優先安裝你的 requirements.txt
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          # 確保安裝 pytest-playwright
-          pip install pytest-playwright
+          # 確保 pytest-playwright 是最新且與環境對齊的
+          pip install pytest-playwright playwright
 
-      # 4. 【關鍵修正】使用 python 指令來安裝瀏覽器，確保與環境中的 playwright 版本精確對齊
+      # 4. 【關鍵修正】使用 python 指令安裝瀏覽器，確保路徑與版本完全對齊
       - name: Install Playwright Browsers
         run: |
+          # 加上 chromium 指定只裝這個，跑得更快，且加上 --with-deps 確保 Linux 依賴完整
           python -m playwright install --with-deps chromium
 
       # 5. 執行自動化測試
