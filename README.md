@@ -210,6 +210,28 @@ pytest --slow
 
 ---
 
+## 🚀 CI/CD 整合實作 (Continuous Integration)
+
+本專案已導入 **GitHub Actions** 實作持續整合流程，確保代碼品質與測試穩定性。
+
+### 🛠️ 技術棧與環境
+- **CI 工具**: GitHub Actions
+- **執行環境**: Ubuntu Latest (Linux)
+- **語言版本**: Python 3.11
+
+### 📋 流水線流程說明
+1. **代碼偵測**: 只要有新的代碼 `push` 或 `pull request` 至 `main` 分支，即自動觸發。
+2. **環境配置**: 自動建立 Python 3.11 虛擬環境。
+3. **依賴安裝**: 自動根據 `requirements.txt` 安裝專案所需套件。
+4. **自動化測試**: 執行測試腳本並產生執行日誌 (Log)，確保功能未受損壞。
+
+### 📈 實踐意義
+- **自動化門神**: 減少人為疏失，確保進入倉庫的代碼皆通過環境驗證。
+- **快速回饋**: 透過雲端執行日誌，能在第一時間發現環境相容性或程式邏輯問題。
+- **無頭模式 (Headless)**: 實作測試腳本在無 GUI 環境下的穩定執行能力。
+
+---
+
 ## 🗺️ 未來規劃
 
 - [ ] 全面串接 FastAPI Mock Server，取代 Playwright Route Mock
