@@ -29,16 +29,19 @@ jobs:
           python-version: '3.11'
           cache: 'pip' # 開啟快取功能，下次 Push 會跑得更快
 
-      # 3. 安裝 Python 相依套件
+      # 3. 安裝 Python 相依套件 (確保順序與一致性)
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest-playwright playwright
+          # 優先安裝 requirements.txt 中的版本
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          # 確保安裝 pytest-playwright
+          pip install pytest-playwright
 
-      # 4. 【關鍵】安裝 Playwright 瀏覽器核心與系統所需相依函式庫
+      # 4. 【關鍵修正】使用 python 指令來安裝瀏覽器，確保與環境中的 playwright 版本精確對齊
       - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
+        run: |
+          python -m playwright install --with-deps chromium
 
       # 5. 執行自動化測試
       - name: Run Tests
