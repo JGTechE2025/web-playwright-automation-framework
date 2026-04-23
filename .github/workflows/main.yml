@@ -1,0 +1,22 @@
+name: Python Automation Test
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: Run Tests
+        run: |
+          echo "Hello CI/CD! I am running a test."
+          # 等你之後確定環境沒問題，再把下面這行 pytest 的註解拿掉
+          # pytest
