@@ -1,22 +1,61 @@
-name: Python Automation Test
+# GitHub Actions 工作流名稱：顯示在 GitHub 介面上的標題
+name: Python Playwright Automation CI
 
-on: [push]
+# 觸發條件：當 main 分支有 push 或 PR 時執行
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+# 全域環境變數：解決 Node.js 20 棄用警告，並強制使用 Node.js 24
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  build:
+  build-and-test:
+    # 使用最新的 Ubuntu Linux 環境
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
+      # 1. 下載專案原始碼
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. 建立 Python 3.11 環境
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip' # 開啟快取功能，下次 Push 會跑得更快
+
+      # 3. 安裝 Python 相依套件
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install pytest-playwright playwright
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      # 4. 【關鍵】安裝 Playwright 瀏覽器核心與系統所需相依函式庫
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      # 5. 執行自動化測試
       - name: Run Tests
         run: |
-          echo "Hello CI/CD! I am running a test."
-          # 等你之後確定環境沒問題，再把下面這行 pytest 的註解拿掉
-          # pytest
+          echo "🚀 CI 環境就緒，準備執行測試..."
+          # 目前先執行 echo 驗證流程，未來真正要跑測試時改為執行: pytest
+          echo "Hello Joe! Your Playwright CI is running successfully."
+          # pytest --junitxml=report.xml # 範例：執行測試並產生報告檔
+
+      # 6. 【CD 基礎】上傳測試結果 (Artifacts)
+      # 即使測試失敗 (Failure) 也會執行，這能讓你下載 Log 或截圖來 Debug
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: |
+            test-results/
+            report.xml
+          retention-days: 7 # 檔案保留 7 天
