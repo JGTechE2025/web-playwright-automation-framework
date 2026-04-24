@@ -256,46 +256,94 @@ pytest --slow
 
 ---
 
-## 🛠️ 技術挑戰與 CI/CD 踩坑紀錄 (Troubleshooting)
+## 🛠️ 技術挑戰與踩坑紀錄 (Troubleshooting)
 
-在佈署 GitHub Actions 自動化流程時，針對 Playwright 環境遭遇了以下關鍵挑戰並成功修復：
+在佈署 GitHub Actions 與開發測試架構的過程中，遭遇以下關鍵挑戰並成功修復：
+
+---
 
 ### 1. YAML 語法精確度 (YAML Syntax)
-* **問題描述**：初期出現 `Invalid workflow file` 報錯，導致 CI 完全無法啟動。
-* **原因分析**：YAML 檔案對**縮排（Indentation）**與**空格**極其敏感，註解位置不對或多餘的空格都會導致解析失敗。
-* **解決方案**：重新對齊 `run: |` 下方的指令，確保所有 shell 指令與註解層級一致，維持標準的兩格空格縮排。
+
+- **問題描述**：初期出現 `Invalid workflow file` 報錯，導致 CI 完全無法啟動。
+- **根因分析**：YAML 對縮排與空格極其敏感，多餘的空格或錯誤的註解位置都會導致解析失敗。
+- **解決方案**：重新對齊 `run: |` 下方所有指令，確保統一使用兩格空格縮排，消除隱性格式錯誤。
+
+---
 
 ### 2. Playwright 瀏覽器版本斷層 (Executable Doesn't Exist)
-* **問題描述**：CI 執行時噴出 `BrowserType.launch: Executable doesn't exist`。雖然執行了安裝指令，但 Python 套件仍找不到瀏覽器執行檔。
-* **解決方案**：
-    * **核心原因**：使用 `npx playwright install` 有時會下載到與 Python 虛擬環境中 `playwright` 套件版本不匹配的瀏覽器。
-    * **修正指令**：改用 `python -m playwright install --with-deps chromium`。
-    * **關鍵點**：透過 `python -m` 指令能強制對齊「當前 Python 套件」與「瀏覽器執行檔」的版本，並透過 `--with-deps` 補齊 Ubuntu Linux 系統所需的相依函式庫（如 `.so` 檔），徹底解決執行檔遺失問題。
+
+- **問題描述**：CI 執行時拋出 `BrowserType.launch: Executable doesn't exist`，瀏覽器無法啟動。
+- **根因分析**：使用 `npx playwright install` 可能下載到與 Python 虛擬環境中 `playwright` 套件版本不匹配的瀏覽器。
+- **解決方案**：改用 `python -m playwright install --with-deps chromium`，透過 `python -m` 強制對齊套件與瀏覽器版本，並以 `--with-deps` 補齊 Ubuntu 所需的系統函式庫（`.so` 檔）。
+
+---
 
 ### 3. Headless 模式動態切換 (Environment Adaptation)
-* **問題描述**：本地開發為了除錯慣用 `headless=False`（有頭模式），但在 GitHub Actions（無螢幕伺服器環境）會導致系統因找不到顯示設備而崩潰。
-* **解決方案**：重構 `conftest.py` 中的 `page` fixture，利用 `pytest` 的 `request.config` 實作動態判斷邏輯：
-    ```python
-    # 判斷指令是否含有 --headed 參數，若無則預設啟動無頭模式
-    is_headless = not request.config.getoption("--headed")
-    browser = playwright.chromium.launch(
-        headless=is_headless,
-        slow_mo=2000 if slow else 0
-    )
-    ```
-* **效果**：達成「本地開發看畫面、雲端 CI 自動無頭」的靈活適配，兼顧開發直觀性與 CI 穩定性。
+
+- **問題描述**：本地開發慣用 `headless=False`，在 GitHub Actions 無螢幕環境下會直接崩潰。
+- **根因分析**：固定寫死的 headless 設定無法同時滿足本地除錯與 CI 執行的需求。
+- **解決方案**：重構 `conftest.py`，透過 `request.config.getoption("--headed")` 動態判斷執行環境，達成「本地看畫面、CI 自動無頭」的靈活切換。
+
+```python
+is_headless = not request.config.getoption("--headed")
+browser = playwright.chromium.launch(headless=is_headless, slow_mo=2000 if slow else 0)
+```
+
+---
 
 ### 4. 測試報告可視化 (Artifacts Reporting)
-* **問題描述**：預設產出的 `report.xml` 為 XML 原始碼格式，直接開啟時缺乏可讀性。
-* **優化方案**：已配置 GitHub Artifacts 自動歸檔功能，未來將導入 `pytest-html` 產出視覺化 HTML 報告，提升測試結果的透明度與分析效率。
+
+- **問題描述**：預設產出的 `report.xml` 為 XML 原始格式，直接開啟缺乏可讀性。
+- **根因分析**：JUnit XML 格式設計給工具解析，非人工閱讀。
+- **解決方案**：已配置 GitHub Artifacts 自動歸檔，後續規劃導入 Allure Report 產出視覺化 HTML 報告，提升測試結果的透明度。
+
+---
+
+### 5. 雙層 Mock 架構整合 (Dual-Mode Mock Architecture)
+
+- **問題描述**：Playwright Route Mock 攔截的是瀏覽器層請求，無法驗證真實的 HTTP contract（例如 status code 語意、response schema 完整性）。若後端悄悄把 `402` 改成 `500`，Route Mock 層的測試不會察覺。
+- **根因分析**：單層 mock 覆蓋面不足，缺乏對 API contract 的驗證能力。
+- **解決方案**：建立雙層 Mock 架構，Route Mock 負責 CI 快速驗證，FastAPI Server Mock 負責 integration 環境的 HTTP contract 驗證。兩者透過 `utils/mock_payment.py` 統一介面管理，測試只需換一行呼叫即可切換模式。
+
+---
+
+### 6. fetch 回傳 HTML 導致 JSON 解析失敗 (SyntaxError: Unexpected token '<')
+
+- **問題描述**：執行測試時，`page.evaluate` 中的 fetch 請求崩潰，錯誤訊息如下：
+playwright._impl._errors.Error: Page.evaluate: SyntaxError: Unexpected token '<'
+"<html>... is not valid JSON"
+
+
+- **根因分析**：在 `saucedemo.com` 頁面下使用相對路徑 `fetch('/mock/payment')`，瀏覽器將其解析為 `https://www.saucedemo.com/mock/payment`。由於該路徑不存在，伺服器回傳 HTML 404 頁面，`response.json()` 嘗試解析 HTML 時因遇到 `<` 字元而拋出 SyntaxError。同時，原本的 Route Mock pattern `**/mock/payment/**` 因 URL 不匹配而失效，導致請求穿透至真實網路。
+
+
+- **解決方案**：採用「環境隔離」策略，改用絕對路徑並精確對齊 Mock pattern：
+  - **驅動層**：將 `fetch` 請求改為 `http://localhost/mock/payment`（Playwright 只要 pattern 匹配即可攔截，URL 不需要真實存在）。
+  - **模擬層**：同步修正攔截 pattern，從 `**/mock/payment/**` 改為 `http://localhost/mock/payment`，確保精確匹配。
+
+```python
+# utils/mock_payment.py — 修正後
+page.route("http://localhost/mock/payment", lambda route: route.fulfill(...))
+```
+
+```python
+# flows/checkout_flow.py — 修正後
+self.page.evaluate("""
+    const response = await fetch('http://localhost/mock/payment', { method: 'POST' });
+    return await response.json();
+""")
+```
+
+> **經驗總結**：在第三方網站進行 E2E 測試時，務必使用絕對路徑模擬內部 API，避免 URL 衝突。Playwright Route Mock 攔截發生在網路層之前，URL 不需要真實存在。解析 JSON 前應優先確認 `Content-Type` 是否為 `application/json`，作為防禦性編程的基本習慣。
+
 
 ---
 
 ## 🗺️ 未來規劃
 
 - [x] CI/CD（GitHub Actions）整合：實作 Playwright 雲端環境自動化部署
-- [ ] 全面串接 FastAPI Mock Server，取代 Playwright Route Mock
-- [ ] 建立獨立 API test layer（驗證 backend 行為）
+- [X] 全面串接 FastAPI Mock Server，取代 Playwright Route Mock
+- [X] 建立獨立 API test layer（驗證 backend 行為）
 - [ ] Allure Report 測試報告產出與 GitHub Pages 託管
 - [ ] Logging 模組整合（增加 Log 紀錄與產出）
 - [ ] `.env` 環境變數管理（區分測試與正式環境）
