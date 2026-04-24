@@ -27,7 +27,7 @@ def page(request):
     with sync_playwright() as p:
         browser = p.chromium.launch(
             headless=is_headless,  # 改為動態判斷
-            slow_mo=2000 if slow else 0
+            slow_mo=1000 if slow else 0
         )
 
         # 設定畫面大小
