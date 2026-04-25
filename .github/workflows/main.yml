@@ -64,9 +64,25 @@ jobs:
       # 6. 執行自動化測試
       - name: Run Tests
         run: |
-          # 確認 allure-pytest plugin 已安裝
           python -c "import allure_pytest; print('allure-pytest OK')"
-          pytest --alluredir=allure-results --junitxml=report.xml -v || true
+
+          # 先手動建立資料夾，避免 plugin 靜默失敗
+          mkdir -p allure-results
+
+          # 印出完整的 pytest plugin 清單，確認 allure 有被載入
+          pytest --co -q --alluredir=allure-results 2>&1 | head -30 || true
+
+          # 正式執行，加上 -p allure_pytest 強制載入 plugin
+          pytest --alluredir=allure-results \
+                 --junitxml=report.xml \
+                 -p allure_pytest \
+                 -v 2>&1 | tee pytest_output.log || true
+
+          # 印出結果讓你看清楚
+          echo "=== pytest log tail ==="
+          tail -20 pytest_output.log
+          echo "=== allure-results content ==="
+          ls -la allure-results/ || echo "Still empty"
 
       # 7. 驗證數據完整性：在產生報告前，先確認 allure-results 內是否有檔案產生
       - name: Verify allure-results exists
