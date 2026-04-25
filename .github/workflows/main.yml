@@ -68,17 +68,20 @@ jobs:
       # CI 環境不啟動 Allure 時間戳（conftest 只在沒有手動指定時才注入）
       - name: Run Tests
         run: |
-          echo "🚀 CI 環境就緒，準備執行測試..."
           pytest --alluredir=allure-results --junitxml=report.xml || true
-        # || true：即使有測試失敗，也繼續執行後續的報告產出步驟
-        # 這樣才能在 GitHub Pages 上看到失敗的測試詳情
 
-      # 7. 用 Allure CLI 將 raw results → 靜態 HTML 報告
+      # 新增：確認 allure-results 有沒有被建立
+      - name: Verify allure-results exists
+        if: always()
+        run: |
+          echo "=== allure-results content ==="
+          ls -la allure-results/ || echo "❌ allure-results NOT found"
+          echo "Total files: $(find allure-results -type f 2>/dev/null | wc -l)"
+
       - name: Generate Allure Report
         if: always()
         run: |
           allure generate allure-results --clean -o allure-report
-          echo "✅ Allure HTML report generated"
 
       # 8. 上傳 XML + 截圖等原始產出（供 debug 用）
       - name: Upload Test Artifacts
