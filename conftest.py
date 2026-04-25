@@ -117,11 +117,25 @@ def page(request):
     with sync_playwright() as p:
         browser = p.chromium.launch(
             headless=is_headless,
+            # args=["--start-maximized"] 僅在 headed 模式(看得到視窗)有效
+            args=["--start-maximized"] if not is_headless else [],
             slow_mo=1000 if slow else 0
         )
-        context = browser.new_context(viewport={"width": 1920, "height": 1080})
+
+        # 這裡的邏輯修正：
+        # 1. 如果是 headed 模式 (有視窗)，我們用 no_viewport=True 讓它跟隨視窗最大化
+        # 2. 如果是 headless 模式 (GitHub跑時)，沒視窗可最大化，所以要寫死固定尺寸防止跑版
+        if is_headless:
+            context = browser.new_context(viewport={"width": 1920, "height": 1080})
+        else:
+            context = browser.new_context(no_viewport=True)
+
         page = context.new_page()
+
+        # 必須要有 yield，Pytest 才會把這個 page 物件「借給」測試案例使用
         yield page
+
+        # 測試跑完後才會執行這裡，關閉瀏覽器
         browser.close()
 
 
