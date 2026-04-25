@@ -52,6 +52,7 @@ ENV/
 # 這些是本地跑測試產生的數據，不推送到 main 分支以保持整潔
 allure-results/
 allure-report/
+allure-runs/
 
 # === 6. 其他工具 (如有需要可保留) ===
 .mypy_cache/
