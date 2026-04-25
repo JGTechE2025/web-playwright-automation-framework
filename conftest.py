@@ -67,51 +67,52 @@ def pytest_addoption(parser):
 
 
 # ─────────────────────────────────────────────
-# pytest_configure：注入 alluredir + 寫環境資訊
+# pytest_configure：注入 alluredir
 # ─────────────────────────────────────────────
 def pytest_configure(config):
     """
-    只在本機（沒有手動指定 --alluredir）時注入時間戳路徑。
-    CI 明確傳入 --alluredir=allure-results 時，完全不干涉。
+    本機模式：動態注入時間戳 alluredir。
+    CI 模式：完全不干涉，由 --alluredir=allure-results 控制。
     """
-    # 正確判斷方式：直接看 sys.argv，不依賴 plugin 內部 option 名稱
     is_ci_explicit = any("--alluredir" in arg for arg in sys.argv)
+    if is_ci_explicit:
+        # CI 環境：只做環境資訊寫入，路徑完全由 CLI 參數決定
+        _write_environment_properties("allure-results")
+        return
 
-    if not is_ci_explicit:
-        # 本機模式：注入時間戳路徑
-        config.option.allure_report_dir = _RESULTS_DIR
+    # 本機環境：注入時間戳路徑
+    # allure-pytest 內部用的 key 是 "alluredir"，不是 "allure_report_dir"
+    config.option.alluredir = _RESULTS_DIR
+    os.makedirs(_RESULTS_DIR, exist_ok=True)
+    _write_environment_properties(_RESULTS_DIR)
 
-    allure_dir = getattr(config.option, "allure_report_dir", _RESULTS_DIR) or _RESULTS_DIR
+
+# ─────────────────────────────────────────────
+# 將環境資訊寫入 Allure 的 environment.properties
+# ─────────────────────────────────────────────
+def _write_environment_properties(allure_dir: str):
     os.makedirs(allure_dir, exist_ok=True)
-
-    # 寫入環境資訊
     env_file = os.path.join(allure_dir, "environment.properties")
-    python_version = f"Python {sys.version.split()[0]}"
     with open(env_file, "w") as f:
         f.write("Browser=Chromium\n")
         f.write("Base.URL=https://www.saucedemo.com\n")
-        f.write(f"Python.Version={python_version}\n")
+        f.write(f"Python.Version=Python {sys.version.split()[0]}\n")
         f.write("Framework=Playwright + Pytest\n")
         f.write("Environment=Local\n")
 
 
-# conftest.py — 只保留一個 pytest_sessionfinish
 def pytest_sessionfinish(session, exitstatus):
-    """
-    本機自動產 Allure HTML 報告。
-    CI 環境（有傳 --alluredir）直接跳過，由 workflow 負責。
-    """
     is_ci_explicit = any("--alluredir" in arg for arg in sys.argv)
     if is_ci_explicit:
         return
 
+    # 本機才自動產報告
     try:
         subprocess.run(
             ["allure", "generate", _RESULTS_DIR, "--clean", "-o", _REPORT_DIR],
             check=True,
         )
-        print(f"\n✅ Allure report generated → {_REPORT_DIR}")
-        print(f"   Run: allure open {_REPORT_DIR}")
+        print(f"\n✅ Allure report → allure open {_REPORT_DIR}")
     except FileNotFoundError:
         print("\n⚠️  allure CLI not found. Install: brew install allure")
     except subprocess.CalledProcessError as e:
