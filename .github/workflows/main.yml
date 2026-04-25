@@ -61,9 +61,12 @@ jobs:
 
       # 6. 執行自動化測試：執行 pytest 並將原始數據存入 allure-results 資料夾
       # 加上 || true 是為了確保測試失敗時，後續的報告產生步驟依然能執行
+      # 6. 執行自動化測試
       - name: Run Tests
         run: |
-          pytest --alluredir=allure-results --junitxml=report.xml || true
+          # 確認 allure-pytest plugin 已安裝
+          python -c "import allure_pytest; print('allure-pytest OK')"
+          pytest --alluredir=allure-results --junitxml=report.xml -v || true
 
       # 7. 驗證數據完整性：在產生報告前，先確認 allure-results 內是否有檔案產生
       - name: Verify allure-results exists
