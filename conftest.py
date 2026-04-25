@@ -71,23 +71,20 @@ def pytest_addoption(parser):
 # ─────────────────────────────────────────────
 def pytest_configure(config):
     """
-    若使用者沒有手動指定 --alluredir，自動注入時間戳路徑（本機行為）。
-    若有手動指定（例如 CI 的 --alluredir=allure-results），則尊重使用者設定。
-
-    面試要點：
-      為什麼不用 pytest.ini 寫死 --alluredir？
-      因為寫死路徑每次都蓋掉舊資料。動態注入才能保留每次的歷史紀錄。
+    只在本機（沒有手動指定 --alluredir）時注入時間戳路徑。
+    CI 明確傳入 --alluredir=allure-results 時，完全不干涉。
     """
-    # allure_report_dir 是 allure-pytest plugin 注入的 option 名稱
-    current_dir = getattr(config.option, "allure_report_dir", None)
-    if not current_dir:
+    # 正確判斷方式：直接看 sys.argv，不依賴 plugin 內部 option 名稱
+    is_ci_explicit = any("--alluredir" in arg for arg in sys.argv)
+
+    if not is_ci_explicit:
+        # 本機模式：注入時間戳路徑
         config.option.allure_report_dir = _RESULTS_DIR
 
-    allure_dir = config.option.allure_report_dir
+    allure_dir = getattr(config.option, "allure_report_dir", _RESULTS_DIR) or _RESULTS_DIR
     os.makedirs(allure_dir, exist_ok=True)
 
-    # 寫入環境資訊（顯示在 Allure 報告的 Environment 區塊）
-    # 修正：改用 sys.version 取得 Python 版本，避免 os.popen 在某些環境回傳空字串
+    # 寫入環境資訊
     env_file = os.path.join(allure_dir, "environment.properties")
     python_version = f"Python {sys.version.split()[0]}"
     with open(env_file, "w") as f:
@@ -96,6 +93,24 @@ def pytest_configure(config):
         f.write(f"Python.Version={python_version}\n")
         f.write("Framework=Playwright + Pytest\n")
         f.write("Environment=Local\n")
+
+
+def pytest_sessionfinish(session, exitstatus):
+    is_ci_explicit = any("--alluredir" in arg for arg in sys.argv)
+    if is_ci_explicit:
+        return  # CI 模式，由 workflow 負責產報告
+
+    try:
+        subprocess.run(
+            ["allure", "generate", _RESULTS_DIR, "--clean", "-o", _REPORT_DIR],
+            check=True,
+        )
+        print(f"\n✅ Allure report generated → {_REPORT_DIR}")
+        print(f"   Run: allure open {_REPORT_DIR}")
+    except FileNotFoundError:
+        print("\n⚠️  allure CLI not found. Install: brew install allure")
+    except subprocess.CalledProcessError as e:
+        print(f"\n❌ allure generate failed: {e}")
 
 
 # ─────────────────────────────────────────────
