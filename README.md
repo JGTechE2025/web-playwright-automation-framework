@@ -100,7 +100,25 @@ https://you.github.io/repo/         ← 公開報告網址
 
 ---
 
-### 🛠️ 技術挑戰與解決方案 (Allure + GitHub Pages)
+### 📂 本機歷史報告指令
+
+```bash
+# 跑測試 → 自動產出帶時間戳的報告
+pytest -v
+
+# 開啟最新一次報告（macOS / Linux）
+allure open $(ls -dt allure-runs/*/report | head -1)
+
+# 查看所有歷史紀錄
+ls allure-runs/
+
+# 跑完後直接 serve（即時預覽，不需要 generate）
+allure serve allure-runs/2025-07-10_14-30-55/results
+```
+
+---
+
+### 🛠️ 技術挑戰與解決方案 (Technical Challenges & Solutions)
 
 #### 挑戰 7：Allure 報告部署至 GitHub Pages
 
@@ -134,3 +152,43 @@ jobs:
 ```
 
 **經驗總結**：PR 只觸發測試不部署（`if: github.event_name == 'push'`），避免每個 PR 都蓋掉正式報告，這是 CI/CD 的標準保護機制。
+
+---
+
+#### 挑戰 8：本機報告歷史保留（時間戳資料夾）
+
+**問題描述**：
+每次執行 `pytest --alluredir=allure-results` 都會蓋掉前一次結果，
+無法比較不同次執行的差異，也容易在 debug 時誤判「這是新的還是舊的失敗」。
+
+**根因分析**：
+Allure 的 `--alluredir` 是靜態路徑，預設不區分執行批次。
+`allure generate --clean` 更會主動清空舊資料。
+
+**解決方案**：
+在 `conftest.py` 的 `pytest_configure` hook 中動態注入帶時間戳的路徑，
+格式為 `allure-runs/YYYY-MM-DD_HH-MM-SS/results`，每次執行自動建立獨立資料夾。
+再透過 `pytest_sessionfinish` hook 自動呼叫 `allure generate`，
+將 raw JSON 產成靜態 HTML 報告，全程只需一個指令 `pytest -v`。
+
+```python
+# conftest.py 核心邏輯
+def pytest_configure(config):
+    # 只在沒有手動指定 --alluredir 時才注入（CI 設定不被干擾）
+    if not config.option.__dict__.get("allure_report_dir"):
+        ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        config.option.allure_report_dir = f"allure-runs/{ts}/results"
+
+def pytest_sessionfinish(session, exitstatus):
+    # 測試結束後自動產出 HTML 報告
+    subprocess.run(["allure", "generate", results_dir, "--clean", "-o", report_dir])
+```
+
+**設計決策**：
+- 時間戳精確到秒，避免短時間連跑互蓋。
+- CI 環境手動指定 `--alluredir` 時自動跳過注入，兩套機制互不干擾。
+- `allure-runs/` 加入 `.gitignore`，本機歷史不進版控。
+
+**面試延伸**：
+若需要自動清理超過 N 天的舊報告，可在 `pytest_sessionfinish` 加入
+`shutil` 掃描並刪除過期資料夾，CI 與本機都適用。
