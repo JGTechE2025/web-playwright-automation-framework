@@ -70,7 +70,7 @@ jobs:
         run: |
           pytest --alluredir=allure-results --junitxml=report.xml || true
 
-      # 新增：確認 allure-results 有沒有被建立
+      # 7. 新增：確認 allure-results 有沒有被建立
       - name: Verify allure-results exists
         if: always()
         run: |
@@ -81,7 +81,13 @@ jobs:
       - name: Generate Allure Report
         if: always()
         run: |
+          if [ -z "$(ls -A allure-results 2>/dev/null)" ]; then
+            echo "❌ allure-results is empty, skipping generate"
+            exit 1
+          fi
           allure generate allure-results --clean -o allure-report
+          echo "✅ allure-report contents:"
+          ls allure-report/
 
       # 8. 上傳 XML + 截圖等原始產出（供 debug 用）
       - name: Upload Test Artifacts
