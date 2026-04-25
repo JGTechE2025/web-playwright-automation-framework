@@ -25,34 +25,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. 下載專案原始碼
+      # 1. 下載專案原始碼：讓虛擬機能讀取你的 GitHub 程式碼
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. 建立 Python 3.11 環境
+      # 2. 建立 Python 環境：設定指定的 Python 版本並開啟快取提速
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
 
-      # 3. 安裝 Python 相依套件
+      # 3. 安裝 Python 相依套件：升級 pip 並根據 requirements.txt 安裝所有測試工具
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install --upgrade playwright pytest-playwright
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      # 4. 安裝 Playwright 瀏覽器與系統依賴
+      # 4. 安裝 Playwright 瀏覽器：下載測試所需的 Chromium 並補齊 Linux 系統函式庫
       - name: Install Playwright Browsers
         run: |
           python -m playwright install --with-deps chromium
 
-      # 5. 安裝 Allure CLI
-      # 原理：Allure CLI 是 Java 工具，透過官方 PPA 安裝可確保版本穩定
-      # 為什麼不用 pip install allure-pytest 產報告？
-      # allure-pytest 只負責產生 raw JSON results，
-      # 真正把 JSON → HTML 靜態報告需要 allure CLI (Java)
+      # 5. 安裝 Allure CLI：下載 Java 環境與 Allure 工具，將其轉換為可執行指令
       - name: Install Allure CLI
         run: |
           sudo apt-get update -qq
@@ -63,14 +59,13 @@ jobs:
           sudo ln -sf /opt/allure-2.27.0/bin/allure /usr/local/bin/allure
           allure --version
 
-      # 6. 執行自動化測試，指定 alluredir 輸出路徑
-      # --alluredir=allure-results 讓 allure-pytest 把 raw JSON 寫到這裡
-      # CI 環境不啟動 Allure 時間戳（conftest 只在沒有手動指定時才注入）
+      # 6. 執行自動化測試：執行 pytest 並將原始數據存入 allure-results 資料夾
+      # 加上 || true 是為了確保測試失敗時，後續的報告產生步驟依然能執行
       - name: Run Tests
         run: |
           pytest --alluredir=allure-results --junitxml=report.xml || true
 
-      # 7. 新增：確認 allure-results 有沒有被建立
+      # 7. 驗證數據完整性：在產生報告前，先確認 allure-results 內是否有檔案產生
       - name: Verify allure-results exists
         if: always()
         run: |
@@ -78,18 +73,20 @@ jobs:
           ls -la allure-results/ || echo "❌ allure-results NOT found"
           echo "Total files: $(find allure-results -type f 2>/dev/null | wc -l)"
 
+      # 8. 轉換原始數據為 HTML：使用 Allure CLI 將 JSON 格式轉換為漂亮的網頁報告
+      # 加入檔案數量判斷，若無檔案則報錯中止，避免產生空網頁
       - name: Generate Allure Report
         if: always()
         run: |
-          if [ -z "$(ls -A allure-results 2>/dev/null)" ]; then
-            echo "❌ allure-results is empty, skipping generate"
+          file_count=$(find allure-results -type f 2>/dev/null | wc -l)
+          if [ "$file_count" -eq 0 ]; then
+            echo "❌ allure-results is empty (found 0 files), skipping generate"
             exit 1
           fi
+          echo "✅ Found $file_count files, generating report..."
           allure generate allure-results --clean -o allure-report
-          echo "✅ allure-report contents:"
-          ls allure-report/
 
-      # 8. 上傳 XML + 截圖等原始產出（供 debug 用）
+      # 9. 上傳測試產出物：將原始數據上傳至 GitHub Artifacts，方便下載截圖 Debug
       - name: Upload Test Artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -100,9 +97,8 @@ jobs:
             report.xml
           retention-days: 7
 
-      # 9. 部署 Allure HTML 報告到 GitHub Pages
-      # 只在 push 到 main 時部署（PR 不部署，避免未審查的程式碼覆蓋報告）
-      # peaceiris/actions-gh-pages 會把 allure-report/ 的內容推送到 gh-pages branch
+      # 10. 部署至 GitHub Pages：將生成的 HTML 資料夾推送到 gh-pages 分支發布網頁
+      # 增加條件：僅在 main 分支推播時才更新網頁報告
       - name: Deploy Allure Report to GitHub Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && always()
         uses: peaceiris/actions-gh-pages@v4
@@ -110,5 +106,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./allure-report
           publish_branch: gh-pages
-          # keep_files: false → 每次都用最新報告完整覆蓋，不累積舊檔案
           keep_files: false
