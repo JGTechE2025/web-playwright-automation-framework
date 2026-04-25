@@ -364,6 +364,26 @@ plugin 的內部 option `allure_report_dir` 來判斷是否為本機環境。
 
 ---
 
+### 9. --headed CLI option 與 pytest-playwright 內建選項衝突
+
+**問題**：CI 執行時 pytest 在啟動階段即崩潰，
+`argparse.ArgumentError: conflicting option string: --headed`，
+導致零測試執行、allure-results 為空、報告部署失敗。
+
+**根因**：`pytest-playwright` 插件本身內建了 `--headed` option，
+而 `conftest.py` 的 `pytest_addoption` 重複宣告了同名 option，
+pytest 的 argparse 層不允許重複，因此在 conftest 載入時直接拋出例外。
+
+**解法**：移除 `conftest.py` 中重複的 `--headed` 宣告，
+直接使用 `pytest-playwright` 提供的版本。
+`request.config.getoption("--headed")` 的呼叫方式完全不變。
+
+**教訓**：引入 pytest 插件前應確認其內建 CLI option 清單，
+避免在 `conftest.py` 重複宣告造成衝突。
+`pytest-playwright` 的內建 option 包含 `--headed`、`--browser`、`--slowmo` 等。
+
+---
+
 ## 🗺️ 未來規劃
 
 - [x] CI/CD（GitHub Actions）整合
