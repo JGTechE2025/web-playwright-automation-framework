@@ -75,8 +75,11 @@ def pytest_addoption(parser):
       這裡宣告的 option 之後可以在任何 fixture 或 hook 裡透過
       config.getoption("--slow") 取得值。
     """
+    # ✅ 只保留自訂的 --slow，--headed 已由 pytest-playwright 內建提供
     parser.addoption("--slow", action="store_true", default=False)
-    parser.addoption("--headed", action="store_true", default=False)
+
+    # ❌ 移除這行：parser.addoption("--headed", action="store_true", default=False)
+    # parser.addoption("--headed", action="store_true", default=False)
 
 
 def pytest_configure(config):
