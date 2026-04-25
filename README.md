@@ -340,6 +340,27 @@ plugin 的內部 option `allure_report_dir` 來判斷是否為本機環境。
 並用最外層可觀察的介面（argv）判斷執行環境，
 而非依賴框架內部 option 的預設值行為。
 
+---
+
+### 8. CI 環境判斷邏輯導致 allure-results 靜默未建立
+
+**問題**：CI log 顯示 `allure-results NOT found`，
+`pytest --alluredir=allure-results` 執行後資料夾完全不存在。
+
+**根因**：`conftest.py` 以 `sys.argv` 解析是否為 CI 環境，
+但這種做法對 argv 的解析時序有隱性依賴；
+更關鍵的是，`allure-pytest` plugin 在目標資料夾不存在時
+可能靜默失敗，不拋出任何錯誤。
+
+**解法**：
+1. 改用 `os.environ.get("CI") == "true"` 判斷 CI 環境——
+   GitHub Actions 會自動注入此變數，這是跨平台的業界標準。
+2. 在 `pytest_configure` 階段提前呼叫 `os.makedirs("allure-results", exist_ok=True)`，
+   確保資料夾在 plugin 嘗試寫入之前就已存在。
+
+**教訓**：環境判斷應依賴平台注入的標準環境變數，
+而非解析 CLI argv——後者的可用時機與格式因框架版本而異，
+是不穩定的實作細節。
 
 ---
 
