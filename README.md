@@ -319,6 +319,30 @@ fetch('http://localhost/mock/payment')
 
 ---
 
+### 7. conftest.py 的本機優化邏輯干涉 CI 的 alluredir 設定
+
+**問題**：CI 顯示「No files were found with the provided path: allure-results/」，
+GitHub Pages 始終顯示 README 而非 Allure 報告。
+
+**根因**：`conftest.py` 的 `pytest_configure` hook 透過讀取 allure-pytest 
+plugin 的內部 option `allure_report_dir` 來判斷是否為本機環境。
+但該 option 在某些版本的預設值為空字串而非 `None`，
+導致 `if not current_dir` 判斷為 `True`，
+即使 CI 明確傳入 `--alluredir=allure-results`，
+本機時間戳路徑仍會將其覆蓋，
+使 `allure-results/` 資料夾從未在 CI 環境中建立。
+
+**解法**：改用 `sys.argv` 直接偵測使用者是否傳入了 `--alluredir` 參數，
+不再依賴 plugin 內部 option 的命名與預設值行為，
+徹底避免本機邏輯影響 CI 環境。
+
+**教訓**：hook 函式應只修改自己「確定沒有值」的設定，
+並用最外層可觀察的介面（argv）判斷執行環境，
+而非依賴框架內部 option 的預設值行為。
+
+
+---
+
 ## 🗺️ 未來規劃
 
 - [x] CI/CD（GitHub Actions）整合
