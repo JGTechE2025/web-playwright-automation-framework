@@ -1,0 +1,1 @@
+[{"values":["Chromium"],"name":"Browser"},{"values":["https://www.saucedemo.com"],"name":"Base.URL"},{"values":["Python 3.11.15"],"name":"Python.Version"},{"values":["Playwright + Pytest"],"name":"Framework"},{"values":["CI"],"name":"Environment"}]
