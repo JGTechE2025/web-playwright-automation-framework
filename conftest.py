@@ -95,42 +95,14 @@ def pytest_configure(config):
         f.write("Environment=Local\n")
 
 
+# conftest.py — 只保留一個 pytest_sessionfinish
 def pytest_sessionfinish(session, exitstatus):
+    """
+    本機自動產 Allure HTML 報告。
+    CI 環境（有傳 --alluredir）直接跳過，由 workflow 負責。
+    """
     is_ci_explicit = any("--alluredir" in arg for arg in sys.argv)
     if is_ci_explicit:
-        return  # CI 模式，由 workflow 負責產報告
-
-    try:
-        subprocess.run(
-            ["allure", "generate", _RESULTS_DIR, "--clean", "-o", _REPORT_DIR],
-            check=True,
-        )
-        print(f"\n✅ Allure report generated → {_REPORT_DIR}")
-        print(f"   Run: allure open {_REPORT_DIR}")
-    except FileNotFoundError:
-        print("\n⚠️  allure CLI not found. Install: brew install allure")
-    except subprocess.CalledProcessError as e:
-        print(f"\n❌ allure generate failed: {e}")
-
-
-# ─────────────────────────────────────────────
-# pytest_sessionfinish：自動產生 HTML 報告（本機用）
-# ─────────────────────────────────────────────
-def pytest_sessionfinish(session, exitstatus):
-    """
-    所有測試跑完後，自動執行 allure generate。
-    CI 環境由 workflow 的 "Generate Allure Report" step 負責，
-    本機則由這裡自動觸發，讓「pytest」一個指令完成所有事。
-
-    設計決策：
-      不判斷 exitstatus，無條件產出報告，
-      因為測試失敗時更需要報告來分析原因。
-    """
-    # CI 環境（有手動指定 --alluredir）跳過本機自動產報告，
-    # 避免在沒有 allure CLI 的情況下噴出 FileNotFoundError
-    allure_dir = getattr(session.config.option, "allure_report_dir", _RESULTS_DIR)
-    if allure_dir != _RESULTS_DIR:
-        # CI 模式：跳過，由 workflow 負責
         return
 
     try:
