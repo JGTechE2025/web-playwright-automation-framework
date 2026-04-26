@@ -1,38 +1,54 @@
 "Status","Start Time","Stop Time","Duration in ms","Parent Suite","Suite","Sub Suite","Test Class","Test Method","Name","Description"
-"passed","Sun Apr 26 08:50:01 UTC 2026","Sun Apr 26 08:50:02 UTC 2026","1030","tests","test_checkout","TestCheckoutWithRouteMock","","","test_checkout_fail_stays_on_checkout","
-        驗證支付失敗時，頁面仍停留在 checkout 相關頁面（不跳轉）。
+"failed","Sun Apr 26 16:03:56 UTC 2026","Sun Apr 26 16:03:56 UTC 2026","317","tests","test_checkout","TestCheckoutWithRouteMock","","","test_demo_fail_empty_username","
+        [Demo 失敗] 帳號空白登入 → 斷言刻意錯誤，觸發 Allure 截圖。
 
-        學習重點（對比舊寫法）：
-          舊版直接 assert ""checkout"" in page.url，但這個斷言過於寬鬆。
-          現在額外等待頁面穩定，確保 UI 已完成反應再做斷言。
+        真實情境：帳號欄位空白送出，saucedemo 顯示「Username is required」。
+        刻意失敗原因：斷言錯誤訊息為空字串，但實際有訊息存在。
+        面試說法：「這個 case 展示表單驗證的邊界值情境，
+                   以及 Allure 如何在失敗時保留當下的 UI 狀態截圖。」
         "
-"passed","Sun Apr 26 08:49:59 UTC 2026","Sun Apr 26 08:50:00 UTC 2026","1223","tests","test_checkout","TestCheckoutWithRouteMock","","","test_checkout_success","
+"failed","Sun Apr 26 16:03:57 UTC 2026","Sun Apr 26 16:03:57 UTC 2026","317","tests","test_checkout","TestCheckoutWithRouteMock","","","test_demo_fail_locked_out_user","
+        [Demo 失敗] 被鎖定帳號登入 → 斷言刻意錯誤，觸發 Allure 截圖。
+
+        真實情境：locked_out_user 是 saucedemo 內建的鎖定帳號，
+                  登入後顯示「Sorry, this user has been locked out.」
+        刻意失敗原因：斷言「應成功進入商品頁」，但被鎖定帳號無法登入。
+        面試說法：「這個 case 模擬帳號狀態異常的情境，
+                   在實務中對應帳號停用、權限撤銷等場景。」
+        "
+"failed","Sun Apr 26 16:03:55 UTC 2026","Sun Apr 26 16:03:56 UTC 2026","316","tests","test_checkout","TestCheckoutWithRouteMock","","","test_demo_fail_wrong_password","
+        [Demo 失敗] 錯誤密碼登入 → 斷言刻意錯誤，觸發 Allure 截圖。
+
+        真實情境：輸入錯誤密碼後，saucedemo 會顯示 error banner。
+        刻意失敗原因：斷言「應該成功跳轉到商品頁」，但實際停在登入頁。
+        面試說法：「這是負向測試的 demo case，
+                   用來展示測試失敗時 Allure 自動截圖與錯誤訊息的能力。」
+        "
+"passed","Sun Apr 26 16:03:52 UTC 2026","Sun Apr 26 16:03:53 UTC 2026","1230","tests","test_checkout","TestCheckoutWithRouteMock","","","test_checkout_success","
         驗證支付成功時，流程正確導向至 checkout-complete 頁面。
 
         斷言策略：
           1. URL 包含 checkout-complete（主要 happy path 驗證）
           2. 頁面有顯示完成標題（防止假陽性）
         "
-"broken","Sun Apr 26 08:50:09 UTC 2026","Sun Apr 26 08:50:40 UTC 2026","30315","tests","test_checkout","TestCheckoutWithRouteMock","","","test_fail_incorrect_flow_logic","
-        [故意失敗] 模擬流程邏輯錯誤：使用錯誤密碼卻預期進入完成頁面。
-        "
-"skipped","Sun Apr 26 08:50:40 UTC 2026","Sun Apr 26 08:50:40 UTC 2026","0","tests","test_checkout","TestCheckoutWithServerMock","","","test_checkout_success_via_server","
-        完整 E2E 測試，支付請求走真實 HTTP 到 FastAPI Server。
-        "
-"broken","Sun Apr 26 08:50:03 UTC 2026","Sun Apr 26 08:50:09 UTC 2026","5215","tests","test_checkout","TestCheckoutWithRouteMock","","","test_fail_timeout_waiting_for_element","
-        [故意失敗] 模擬 Timeout：嘗試點擊一個不存在的按鈕。
-        "
-"skipped","Sun Apr 26 08:50:40 UTC 2026","Sun Apr 26 08:50:40 UTC 2026","0","tests","test_checkout","TestCheckoutWithServerMock","","","test_payment_success_api_contract","
+"skipped","Sun Apr 26 16:03:57 UTC 2026","Sun Apr 26 16:03:57 UTC 2026","0","tests","test_checkout","TestCheckoutWithServerMock","","","test_payment_success_api_contract","
         直接呼叫 FastAPI 端點，驗證 API contract。
 
         面試要點：
           這是 API-layer test，不經過瀏覽器。
           在沒有前端的情況下就能驗證後端行為，回饋速度更快。
         "
-"failed","Sun Apr 26 08:50:02 UTC 2026","Sun Apr 26 08:50:03 UTC 2026","352","tests","test_checkout","TestCheckoutWithRouteMock","","","test_fail_wrong_header_assertion","
-        [故意失敗] 模擬斷言錯誤：登入後檢查錯誤的標題文字。
+"skipped","Sun Apr 26 16:03:57 UTC 2026","Sun Apr 26 16:03:57 UTC 2026","0","tests","test_checkout","TestCheckoutWithServerMock","","","test_checkout_success_via_server","
+        完整 E2E 測試，支付請求走真實 HTTP 到 FastAPI Server。
         "
-"skipped","Sun Apr 26 08:50:40 UTC 2026","Sun Apr 26 08:50:40 UTC 2026","0","tests","test_checkout","TestCheckoutWithServerMock","","","test_payment_fail_api_contract","
+"passed","Sun Apr 26 16:03:54 UTC 2026","Sun Apr 26 16:03:55 UTC 2026","1086","tests","test_checkout","TestCheckoutWithRouteMock","","","test_checkout_fail_stays_on_checkout","
+        驗證支付失敗時，頁面仍停留在 checkout 相關頁面（不跳轉）。
+
+        學習重點（對比舊寫法）：
+          舊版直接 assert ""checkout"" in page.url，但這個斷言過於寬鬆。
+          現在額外等待頁面穩定，確保 UI 已完成反應再做斷言。
+        "
+"skipped","Sun Apr 26 16:03:57 UTC 2026","Sun Apr 26 16:03:57 UTC 2026","0","tests","test_checkout","TestCheckoutWithServerMock","","","test_payment_fail_api_contract","
         驗證失敗端點回傳 402 且 body 結構正確。
 
         面試要點：
