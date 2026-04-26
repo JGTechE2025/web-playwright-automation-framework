@@ -124,6 +124,48 @@ class TestCheckoutWithRouteMock:
             "Should NOT reach complete page on failed payment"
         )
 
+    # ─────────────────────────────────────────────
+    # 以下為故意失敗的測試案例 (Demo 失敗截圖與 Allure 報告用)
+    # ─────────────────────────────────────────────
+
+    def test_fail_wrong_header_assertion(self, page):
+        """
+        [故意失敗] 模擬斷言錯誤：登入後檢查錯誤的標題文字。
+        """
+        login = LoginPage(page)
+        login.open()
+        login.login("standard_user", "secret_sauce")
+        
+        # 故意檢查一個不存在的標題 "Wrong Sauce Labs"
+        header_text = page.locator(".app_logo").inner_text()
+        assert header_text == "Wrong Sauce Labs", f"預期標題錯誤，實際為: {header_text}"
+
+    def test_fail_timeout_waiting_for_element(self, page):
+        """
+        [故意失敗] 模擬 Timeout：嘗試點擊一個不存在的按鈕。
+        """
+        login = LoginPage(page)
+        login.open()
+        
+        # 故意點擊不存在的選擇器，設定短暫的 timeout (5秒) 觸發失敗
+        page.locator("#invalid_login_button_id").click(timeout=5000)
+
+    def test_fail_incorrect_flow_logic(self, page):
+        """
+        [故意失敗] 模擬流程邏輯錯誤：使用錯誤密碼卻預期進入完成頁面。
+        """
+        flow = CheckoutFlow(
+            LoginPage(page),
+            InventoryPage(page),
+            CheckoutPage(page),
+            page,
+        )
+        # 使用錯誤密碼進行結帳，流程會在登入階段就卡住
+        flow.complete_checkout("standard_user", "wrong_password")
+        
+        # 這裡會因為還在登入頁而斷言失敗
+        assert "checkout-complete" in page.url, "應該要進入完成頁面，但 URL 不符"
+
 
 # ─────────────────────────────────────────────
 # FastAPI Server Mock Tests（Integration）
