@@ -62,6 +62,12 @@ def pytest_sessionfinish(session, exitstatus):
     for filename in os.listdir(current_results):
         shutil.move(os.path.join(current_results, filename), target_results)
 
+    # 【修正】搬移完成後，刪除已空掉的暫存資料夾
+    try:
+        shutil.rmtree(current_results)
+    except Exception:
+        pass
+
     # 產生 HTML 報告
     abs_results = os.path.abspath(target_results)
     abs_report = os.path.abspath(target_report)
