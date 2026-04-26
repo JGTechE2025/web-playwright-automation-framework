@@ -124,47 +124,71 @@ class TestCheckoutWithRouteMock:
             "Should NOT reach complete page on failed payment"
         )
 
+    # tests/test_checkout.py
+    # 替換原本三個 test_fail_* 方法
+    # 放在 TestCheckoutWithRouteMock class 內
+
     # ─────────────────────────────────────────────
-    # 以下為故意失敗的測試案例 (Demo 失敗截圖與 Allure 報告用)
+    # ⚠️  Demo 失敗案例（刻意失敗，用於展示 Allure 截圖功能）
+    # 測試情境真實（登入驗證），斷言刻意寫錯，確保觸發截圖附件
     # ─────────────────────────────────────────────
 
-    def test_fail_wrong_header_assertion(self, page):
+    def test_demo_fail_wrong_password(self, page):
         """
-        [故意失敗] 模擬斷言錯誤：登入後檢查錯誤的標題文字。
+        [Demo 失敗] 錯誤密碼登入 → 斷言刻意錯誤，觸發 Allure 截圖。
+
+        真實情境：輸入錯誤密碼後，saucedemo 會顯示 error banner。
+        刻意失敗原因：斷言「應該成功跳轉到商品頁」，但實際停在登入頁。
+        面試說法：「這是負向測試的 demo case，
+                   用來展示測試失敗時 Allure 自動截圖與錯誤訊息的能力。」
         """
         login = LoginPage(page)
         login.open()
-        login.login("standard_user", "secret_sauce")
-        
-        # 故意檢查一個不存在的標題 "Wrong Sauce Labs"
-        header_text = page.locator(".app_logo").inner_text()
-        assert header_text == "Wrong Sauce Labs", f"預期標題錯誤，實際為: {header_text}"
+        login.login_expect_failure("standard_user", "wrong_password")
 
-    def test_fail_timeout_waiting_for_element(self, page):
-        """
-        [故意失敗] 模擬 Timeout：嘗試點擊一個不存在的按鈕。
-        """
-        login = LoginPage(page)
-        login.open()
-        
-        # 故意點擊不存在的選擇器，設定短暫的 timeout (5秒) 觸發失敗
-        page.locator("#invalid_login_button_id").click(timeout=5000)
-
-    def test_fail_incorrect_flow_logic(self, page):
-        """
-        [故意失敗] 模擬流程邏輯錯誤：使用錯誤密碼卻預期進入完成頁面。
-        """
-        flow = CheckoutFlow(
-            LoginPage(page),
-            InventoryPage(page),
-            CheckoutPage(page),
-            page,
+        # 刻意斷言錯誤：預期跳轉成功，但實際不會跳轉
+        assert "inventory" in page.url, (
+            f"[Demo 失敗] 預期進入商品頁，實際 URL 為: {page.url}"
         )
-        # 使用錯誤密碼進行結帳，流程會在登入階段就卡住
-        flow.complete_checkout("standard_user", "wrong_password")
-        
-        # 這裡會因為還在登入頁而斷言失敗
-        assert "checkout-complete" in page.url, "應該要進入完成頁面，但 URL 不符"
+
+    def test_demo_fail_empty_username(self, page):
+        """
+        [Demo 失敗] 帳號空白登入 → 斷言刻意錯誤，觸發 Allure 截圖。
+
+        真實情境：帳號欄位空白送出，saucedemo 顯示「Username is required」。
+        刻意失敗原因：斷言錯誤訊息為空字串，但實際有訊息存在。
+        面試說法：「這個 case 展示表單驗證的邊界值情境，
+                   以及 Allure 如何在失敗時保留當下的 UI 狀態截圖。」
+        """
+        login = LoginPage(page)
+        login.open()
+        login.login_expect_failure("", "secret_sauce")
+
+        error_msg = page.text_content("[data-test='error']") or ""
+
+        # 刻意斷言錯誤：預期沒有錯誤訊息，但實際有
+        assert error_msg == "", (
+            f"[Demo 失敗] 預期無錯誤訊息，實際顯示: '{error_msg}'"
+        )
+
+    def test_demo_fail_locked_out_user(self, page):
+        """
+        [Demo 失敗] 被鎖定帳號登入 → 斷言刻意錯誤，觸發 Allure 截圖。
+
+        真實情境：locked_out_user 是 saucedemo 內建的鎖定帳號，
+                  登入後顯示「Sorry, this user has been locked out.」
+        刻意失敗原因：斷言「應成功進入商品頁」，但被鎖定帳號無法登入。
+        面試說法：「這個 case 模擬帳號狀態異常的情境，
+                   在實務中對應帳號停用、權限撤銷等場景。」
+        """
+        login = LoginPage(page)
+        login.open()
+        login.login_expect_failure("locked_out_user", "secret_sauce")
+
+        # 刻意斷言錯誤：預期登入成功，但被鎖定帳號會停在登入頁
+        assert "inventory" in page.url, (
+            f"[Demo 失敗] 預期進入商品頁，實際 URL 為: {page.url}"
+        )
 
 
 # ─────────────────────────────────────────────
