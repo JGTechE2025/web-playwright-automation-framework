@@ -89,11 +89,21 @@ def pytest_addoption(parser):
     """註冊自定義 CLI 選項"""
     parser.addoption("--slow", action="store_true", default=False, help="每個操作間隔 1 秒")
 
+
 @pytest.fixture
 def page(request):
-    """建立 Playwright 瀏覽器分頁"""
+    """建立 Playwright 瀏覽器分頁
+
+    設計決策：
+      - CI 環境（沒有螢幕）強制使用 headless，避免 XServer missing 錯誤
+      - 本機可透過 --headed 開啟視窗，方便 debug
+      - --slow 讓每步操作延遲 1 秒，人眼可追蹤流程
+    """
     slow = request.config.getoption("--slow")
-    is_headed = getattr(request.config.option, "headed", False)
+
+    # pytest-playwright 的 --headed option 在 CI 可能被誤傳，
+    # 加上 _IS_CI 雙重保護，確保 CI 永遠是 headless
+    is_headed = getattr(request.config.option, "headed", False) and not _IS_CI
 
     with sync_playwright() as p:
         browser = p.chromium.launch(
