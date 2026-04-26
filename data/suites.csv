@@ -1,33 +1,42 @@
 "Status","Start Time","Stop Time","Duration in ms","Parent Suite","Suite","Sub Suite","Test Class","Test Method","Name","Description"
-"skipped","Sun Apr 26 06:55:01 UTC 2026","Sun Apr 26 06:55:01 UTC 2026","0","tests","test_checkout","TestCheckoutWithServerMock","","","test_payment_success_api_contract","
-        直接呼叫 FastAPI 端點，驗證 API contract。
-
-        面試要點：
-          這是 API-layer test，不經過瀏覽器。
-          在沒有前端的情況下就能驗證後端行為，回饋速度更快。
-        "
-"passed","Sun Apr 26 06:54:58 UTC 2026","Sun Apr 26 06:54:59 UTC 2026","1165","tests","test_checkout","TestCheckoutWithRouteMock","","","test_checkout_success","
-        驗證支付成功時，流程正確導向至 checkout-complete 頁面。
-
-        斷言策略：
-          1. URL 包含 checkout-complete（主要 happy path 驗證）
-          2. 頁面有顯示完成標題（防止假陽性）
-        "
-"passed","Sun Apr 26 06:55:00 UTC 2026","Sun Apr 26 06:55:01 UTC 2026","1031","tests","test_checkout","TestCheckoutWithRouteMock","","","test_checkout_fail_stays_on_checkout","
+"passed","Sun Apr 26 08:50:01 UTC 2026","Sun Apr 26 08:50:02 UTC 2026","1030","tests","test_checkout","TestCheckoutWithRouteMock","","","test_checkout_fail_stays_on_checkout","
         驗證支付失敗時，頁面仍停留在 checkout 相關頁面（不跳轉）。
 
         學習重點（對比舊寫法）：
           舊版直接 assert ""checkout"" in page.url，但這個斷言過於寬鬆。
           現在額外等待頁面穩定，確保 UI 已完成反應再做斷言。
         "
-"skipped","Sun Apr 26 06:55:01 UTC 2026","Sun Apr 26 06:55:01 UTC 2026","0","tests","test_checkout","TestCheckoutWithServerMock","","","test_payment_fail_api_contract","
+"passed","Sun Apr 26 08:49:59 UTC 2026","Sun Apr 26 08:50:00 UTC 2026","1223","tests","test_checkout","TestCheckoutWithRouteMock","","","test_checkout_success","
+        驗證支付成功時，流程正確導向至 checkout-complete 頁面。
+
+        斷言策略：
+          1. URL 包含 checkout-complete（主要 happy path 驗證）
+          2. 頁面有顯示完成標題（防止假陽性）
+        "
+"broken","Sun Apr 26 08:50:09 UTC 2026","Sun Apr 26 08:50:40 UTC 2026","30315","tests","test_checkout","TestCheckoutWithRouteMock","","","test_fail_incorrect_flow_logic","
+        [故意失敗] 模擬流程邏輯錯誤：使用錯誤密碼卻預期進入完成頁面。
+        "
+"skipped","Sun Apr 26 08:50:40 UTC 2026","Sun Apr 26 08:50:40 UTC 2026","0","tests","test_checkout","TestCheckoutWithServerMock","","","test_checkout_success_via_server","
+        完整 E2E 測試，支付請求走真實 HTTP 到 FastAPI Server。
+        "
+"broken","Sun Apr 26 08:50:03 UTC 2026","Sun Apr 26 08:50:09 UTC 2026","5215","tests","test_checkout","TestCheckoutWithRouteMock","","","test_fail_timeout_waiting_for_element","
+        [故意失敗] 模擬 Timeout：嘗試點擊一個不存在的按鈕。
+        "
+"skipped","Sun Apr 26 08:50:40 UTC 2026","Sun Apr 26 08:50:40 UTC 2026","0","tests","test_checkout","TestCheckoutWithServerMock","","","test_payment_success_api_contract","
+        直接呼叫 FastAPI 端點，驗證 API contract。
+
+        面試要點：
+          這是 API-layer test，不經過瀏覽器。
+          在沒有前端的情況下就能驗證後端行為，回饋速度更快。
+        "
+"failed","Sun Apr 26 08:50:02 UTC 2026","Sun Apr 26 08:50:03 UTC 2026","352","tests","test_checkout","TestCheckoutWithRouteMock","","","test_fail_wrong_header_assertion","
+        [故意失敗] 模擬斷言錯誤：登入後檢查錯誤的標題文字。
+        "
+"skipped","Sun Apr 26 08:50:40 UTC 2026","Sun Apr 26 08:50:40 UTC 2026","0","tests","test_checkout","TestCheckoutWithServerMock","","","test_payment_fail_api_contract","
         驗證失敗端點回傳 402 且 body 結構正確。
 
         面試要點：
           為什麼不只斷言 status != 200？
           因為 402 是業務語意，如果改成 500 表示 server crash，
           兩者都會讓 != 200 通過，但意義完全不同。
-        "
-"skipped","Sun Apr 26 06:55:01 UTC 2026","Sun Apr 26 06:55:01 UTC 2026","1","tests","test_checkout","TestCheckoutWithServerMock","","","test_checkout_success_via_server","
-        完整 E2E 測試，支付請求走真實 HTTP 到 FastAPI Server。
         "
